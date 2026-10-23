@@ -1,17 +1,119 @@
-name: build-wheel
-on: [workflow_dispatch]
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "Cargo.toml"
+      - "src/**"
+  pull_request:
+    paths:
+      - "Cargo.toml"
+      - "src/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
-  linux:
-    runs-on: ubuntu-latest
-    container: quay.io/pypa/manylinux2014_x86_64:latest
+  build:
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      matrix:
+        platform:
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            label: windows-x86_64
+          - runner: macos-latest
+            target: x86_64-apple-darwin
+            label: macos-x86_64
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+            label: macos-aarch64
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-      - name: Build
-        run: |
-          /opt/python/cp312-cp312/bin/pip install -U maturin
-          /opt/python/cp312-cp312/bin/maturin build --release --manylinux 2014 --out dist
-      - uses: actions/upload-artifact@v4
+      - uses: swatinem/rust-cache@v2
+
+      - name: Rustup add target
+        run: rustup target add ${{ matrix.platform.target }}
+
+      - name: Build target
+        run: cargo build --release --target ${{ matrix.platform.target }}
+
+      - uses: actions/upload-artifact@v6
         with:
-          name: wheels
-          path: dist/*.whl
+          name: "meme-generator-contrib-${{ matrix.platform.label }}"
+          path: |
+            target/${{ matrix.platform.target }}/release/*.dll
+            target/${{ matrix.platform.target }}/release/*.dylib
+
+  build_linux:
+    runs-on: ${{ matrix.platform.runner }}
+    container: ${{ matrix.platform.container }}
+    strategy:
+      matrix:
+        platform:
+          - runner: ubuntu-latest
+            container: opencloudos/opencloudos:9.6
+            target: x86_64-unknown-linux-gnu
+            label: opencloudos9-x86_64
+          - runner: ubuntu-24.04-arm
+            container: ghcr.io/memecrafters/meme-generator-build-container:arm64
+            target: aarch64-unknown-linux-gnu
+            label: linux-aarch64
+
+    steps:
+      - name: Install OpenCloudOS build deps
+        if: matrix.platform.container == 'opencloudos/opencloudos:9.6'
+        run: |
+          dnf -y install gcc gcc-c++ make cmake git curl \
+            clang clang-devel ninja-build python3 perl \
+            fontconfig-devel freetype-devel libstdc++-devel
+          dnf clean all
+
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+
+      - name: Rustup add target
+        run: rustup target add ${{ matrix.platform.target }}
+
+      - name: Build target
+        run: cargo build --release --target ${{ matrix.platform.target }}
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: "meme-generator-contrib-${{ matrix.platform.label }}"
+          path: |
+            target/${{ matrix.platform.target }}/release/*.so
+
+  build_android:
+    runs-on: ${{ matrix.platform.runner }}
+    container: ${{ matrix.platform.container }}
+    strategy:
+      matrix:
+        platform:
+          - runner: ubuntu-latest
+            container: ghcr.io/memecrafters/meme-generator-build-container:android
+            target: aarch64-linux-android
+            label: android-aarch64
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+
+      - name: Rustup add target
+        run: rustup target add ${{ matrix.platform.target }}
+
+      - name: Build target
+        run: cargo build --release --target ${{ matrix.platform.target }}
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: "meme-generator-contrib-${{ matrix.platform.label }}"
+          path: |
+            target/${{ matrix.platform.target }}/release/*.so
