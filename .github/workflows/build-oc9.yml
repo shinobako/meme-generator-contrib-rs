@@ -10,8 +10,7 @@ jobs:
       - name: Build
         run: |
           /opt/python/cp312-cp312/bin/pip install -U maturin
-          /opt/python/cp312-cp312/bin/maturin build --release \
-            --manylinux 2014 --out dist
+          /opt/python/cp312-cp312/bin/maturin build --release --manylinux 2014 --out dist
       - uses: actions/upload-artifact@v4
         with:
           name: wheels
