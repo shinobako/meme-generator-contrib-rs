@@ -12,8 +12,6 @@ permissions:
   contents: read
 
 env:
-  # 必须和 AstrBot 里 meme_generator_core 的编译版本一致，否则加载时报
-  # "compiled with rustc X, but ... compiled with Y"
   RUST_VERSION: "1.93.1"
 
 jobs:
