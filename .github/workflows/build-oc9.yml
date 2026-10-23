@@ -15,7 +15,7 @@ jobs:
   build_opencloudos_x86_64:
     runs-on: ubuntu-latest
     container:
-      image: opencloudos/opencloudos:9
+      image: opencloudos/opencloudos:9.0
 
     steps:
       - name: Install build deps
