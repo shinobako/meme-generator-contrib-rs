@@ -38,12 +38,6 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
           targets: x86_64-unknown-linux-gnu
 
-      - name: Pin toolchain file
-        run: |
-          echo "${{ env.RUST_VERSION }}" > rust-toolchain.toml
-          rustc --version
-          cargo --version
-
       - uses: swatinem/rust-cache@v2
         with:
           key: rustc-${{ env.RUST_VERSION }}
